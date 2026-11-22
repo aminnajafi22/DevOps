@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+  namespace: okala
+  labels:
+    app: nginx
+spec:
+  containers:
+    - name: nginx
+      image: nginx:stable
+      ports:
+        - name: http
+          containerPort: 80
+          protocol: TCP
