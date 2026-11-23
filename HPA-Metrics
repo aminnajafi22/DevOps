@@ -1,0 +1,238 @@
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+
+metadata:
+  name: nginx-redis-hpa
+  namespace: default
+
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: nginx-redis-deployment
+
+  minReplicas: 1
+  maxReplicas: 7
+
+  metrics:
+
+    # ===================================
+    # 1. RESOURCE METRICS
+    # ===================================
+
+    # Total Pod CPU utilization
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 65
+
+    # Total Pod Memory utilization
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75
+
+    # ===================================
+    # 2. CONTAINER RESOURCE METRICS
+    # ===================================
+
+    # Nginx CPU utilization
+    - type: ContainerResource
+      containerResource:
+        name: cpu
+        container: nginx
+        target:
+          type: Utilization
+          averageUtilization: 70
+
+    # Nginx memory utilization
+    - type: ContainerResource
+      containerResource:
+        name: memory
+        container: nginx
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+    # Redis CPU utilization
+    - type: ContainerResource
+      containerResource:
+        name: cpu
+        container: redis
+        target:
+          type: Utilization
+          averageUtilization: 70
+
+    # Redis memory utilization
+    - type: ContainerResource
+      containerResource:
+        name: memory
+        container: redis
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+    # ===================================
+    # 3. CUSTOM POD METRICS
+    # Requires Custom Metrics Adapter
+    # ===================================
+
+    # HTTP requests per second per Pod
+    - type: Pods
+      pods:
+        metric:
+          name: http_requests_per_second
+        target:
+          type: AverageValue
+          averageValue: "100"
+
+    # Active Nginx connections per Pod
+    - type: Pods
+      pods:
+        metric:
+          name: nginx_active_connections
+        target:
+          type: AverageValue
+          averageValue: "200"
+
+    # Average HTTP response latency (ms)
+    - type: Pods
+      pods:
+        metric:
+          name: http_request_duration_ms
+        target:
+          type: AverageValue
+          averageValue: "250"
+
+    # HTTP errors per second
+    - type: Pods
+      pods:
+        metric:
+          name: http_errors_per_second
+        target:
+          type: AverageValue
+          averageValue: "10"
+
+    # Redis commands per second
+    - type: Pods
+      pods:
+        metric:
+          name: redis_commands_per_second
+        target:
+          type: AverageValue
+          averageValue: "500"
+
+    # Redis connected clients
+    - type: Pods
+      pods:
+        metric:
+          name: redis_connected_clients
+        target:
+          type: AverageValue
+          averageValue: "100"
+
+    # Network receive bytes per second
+    - type: Pods
+      pods:
+        metric:
+          name: network_receive_bytes_per_second
+        target:
+          type: AverageValue
+          averageValue: "10485760"
+
+    # Network transmit bytes per second
+    - type: Pods
+      pods:
+        metric:
+          name: network_transmit_bytes_per_second
+        target:
+          type: AverageValue
+          averageValue: "10485760"
+
+    # ===================================
+    # 4. OBJECT METRICS
+    # Requires Custom Metrics Adapter
+    # ===================================
+
+    # Requests per second per Pod
+    # measured on an Ingress object
+    - type: Object
+      object:
+        describedObject:
+          apiVersion: networking.k8s.io/v1
+          kind: Ingress
+          name: nginx-ingress
+        metric:
+          name: requests_per_second
+        target:
+          type: AverageValue
+          averageValue: "100"
+
+    # ===================================
+    # 5. EXTERNAL METRICS
+    # Requires External Metrics Adapter
+    # ===================================
+
+    # Total message queue depth
+    - type: External
+      external:
+        metric:
+          name: queue_depth
+        target:
+          type: Value
+          value: "1000"
+
+    # Incoming messages per second per Pod
+    - type: External
+      external:
+        metric:
+          name: incoming_messages_per_second
+        target:
+          type: AverageValue
+          averageValue: "200"
+
+    # Total pending Redis stream messages
+    - type: External
+      external:
+        metric:
+          name: redis_pending_messages
+        target:
+          type: Value
+          value: "500"
+
+  # =====================================
+  # SCALING BEHAVIOR
+  # =====================================
+
+  behavior:
+
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      selectPolicy: Max
+
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+
+        - type: Percent
+          value: 100
+          periodSeconds: 60
+
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      selectPolicy: Min
+
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+
+        - type: Percent
+          value: 25
+          periodSeconds: 60
