@@ -1,0 +1,38 @@
+
+apiVersion: batch/v1
+kind: CronJob
+
+metadata:
+  name: nginx-cronjob
+
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 2
+  startingDeadlineSeconds: 60
+
+  jobTemplate:
+    spec:
+      completions: 1
+      parallelism: 1
+      backoffLimit: 3
+
+      template:
+        spec:
+          restartPolicy: Never
+
+          containers:
+            - name: nginx
+              image: nginx:stable
+
+              command:
+                - /bin/sh
+                - -c
+
+              args:
+                - |
+                  set -e
+                  echo "Starting Nginx configuration check"
+                  nginx -t
+                  echo "Nginx configuration is valid"
