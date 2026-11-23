@@ -1,0 +1,63 @@
+# HORIZONTAL POD AUTOSCALER
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: nginx-redis-hpa
+
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: nginx-redis-deployment
+
+  minReplicas: 1
+  maxReplicas: 7
+
+  metrics:
+
+    # Metric 1: CPU
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 65
+
+    # Metric 2: MEMORY
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75
+
+  behavior:
+
+    # Scale UP Configuration
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      selectPolicy: Max
+
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+
+        - type: Percent
+          value: 100
+          periodSeconds: 60
+
+    # Scale DOWN Configuration
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      selectPolicy: Min
+
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+
+        - type: Percent
+          value: 25
+          periodSeconds: 60
