@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mysql-local-pv
+
+spec:
+  capacity:
+    storage: 5Gi
+
+  accessModes:
+    - ReadWriteOnce
+
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+
+  local:
+    path: /data/mysql
+
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - kind-worker
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-local-pvc
+
+spec:
+  storageClassName: ""
+  volumeName: mysql-local-pv
+
+  accessModes:
+    - ReadWriteOnce
+
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql-pod
+
+spec:
+  containers:
+    - name: mysql
+      image: mysql:8.4
+
+      env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "test123456"
+
+      volumeMounts:
+        - name: mysql-storage
+          mountPath: /var/lib/mysql
+
+  volumes:
+    - name: mysql-storage
+      persistentVolumeClaim:
+        claimName: mysql-local-pvc
