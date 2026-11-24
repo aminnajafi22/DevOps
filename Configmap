@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+
+data:
+  APP_MODE: "production"
+  LOG_LEVEL: "info"
+
+  index.html: |
+    <html>
+      <body>
+        <h1>Hello Kubernetes</h1>
+        <p>ConfigMap Volume Example</p>
+      </body>
+    </html>
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: nginx
+
+  template:
+    metadata:
+      labels:
+        app: nginx
+
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:stable
+
+          ports:
+            - containerPort: 80
+
+          # Method 1: Environment Variables
+          env:
+            - name: APP_MODE
+              valueFrom:
+                configMapKeyRef:
+                  name: nginx-config
+                  key: APP_MODE
+
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: nginx-config
+                  key: LOG_LEVEL
+
+          # Method 2: File Mount
+          volumeMounts:
+            - name: nginx-config-volume
+              mountPath: /usr/share/nginx/html/index.html
+              subPath: index.html
+              readOnly: true
+
+      volumes:
+        - name: nginx-config-volume
+          configMap:
+            name: nginx-config
+            items:
+              - key: index.html
+                path: index.html
