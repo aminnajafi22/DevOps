@@ -1,0 +1,53 @@
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: mysql-snapshot-class
+
+driver: csi.trident.netapp.io
+deletionPolicy: Retain
+
+---
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshot
+metadata:
+  name: mysql-snapshot
+  namespace: default
+
+spec:
+  volumeSnapshotClassName: mysql-snapshot-class
+
+  source:
+    persistentVolumeClaimName: mysql-pvc
+    ---------
+    
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotContent
+metadata:
+  name: mysql-import-content
+  annotations:
+    trident.netapp.io/internalSnapshotName: "EXISTING_SNAPSHOT"
+
+spec:
+  deletionPolicy: Retain
+
+  driver: csi.trident.netapp.io
+
+  source:
+    snapshotHandle: "PARENT_VOLUME/mysql-import-content"
+
+  sourceVolumeMode: Filesystem
+
+  volumeSnapshotRef:
+    name: mysql-import-snapshot
+    namespace: default
+
+---
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshot
+metadata:
+  name: mysql-import-snapshot
+  namespace: default
+
+spec:
+  source:
+    volumeSnapshotContentName: mysql-import-content
