@@ -1,0 +1,54 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+
+metadata:
+  name: nginx-network-policy
+  namespace: default
+
+spec:
+  podSelector:
+    matchLabels:
+      app: nginx
+
+  policyTypes:
+    - Ingress
+    - Egress
+
+  # Incoming traffic
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              access: nginx-client
+
+      ports:
+        - protocol: TCP
+          port: 80
+
+  # Outgoing traffic
+  egress:
+
+    # Allow Redis
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+
+      ports:
+        - protocol: TCP
+          port: 6379
+
+    # Allow Kubernetes DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
