@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>سناریوی عملی Kubernetes | Pod و Namespace</title><style>@import url('https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap');@media screen {body{max-width:900px;margin:30px auto;padding:34px 42px;background:white;box-shadow:0 0 0 1px #e5edf1,0 15px 45px #dfe8ec}html{background:#eef3f6} .page-start{border-top:1px dashed #cedbe0;padding-top:25px;margin-top:45px}}@media screen and (max-width:650px){body{padding:20px!important;margin:0!important;max-width:100%!important}.columns{display:block!important}.col{display:block!important;width:100%!important;margin-bottom:15px}.outcome{display:block}.outcard{display:block;width:100%;margin-bottom:8px}.code{overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}}</style><style>@page { size: A4; margin: 17mm 17mm 18mm 17mm; @bottom-left { content: "K8S LAB 01  ·  POD & NAMESPACE"; font-family: "DejaVu Sans"; font-size: 8pt; color: #8a98a8; } @bottom-right { content: counter(page); font-family: "DejaVu Sans"; font-size: 9pt; color: #5d6c7d; } }
+@page:first {margin-top: 16mm;}
+* {box-sizing:border-box}
+html,body {direction: rtl; font-family: 'Noto Naskh Arabic',sans-serif; color:#182d3b; font-size:11.1pt; line-height:1.68;}
+body { margin:0; }
+h1,h2,h3,p {margin-top:0;}
+h1 {font-family:'Noto Naskh Arabic',sans-serif; font-weight:700; font-size:23pt; line-height:1.55; margin: 3mm 0 4mm; color:#102b38;}
+h2 {font-family:'Noto Naskh Arabic',sans-serif; font-weight:600; font-size:15pt; line-height:1.5; margin:0 0 4mm; color:#113646;}
+h3 {font-family:'Noto Naskh Arabic',sans-serif; font-size:10pt; margin:0 0 1mm; color:#124458;}
+p {margin-bottom: 3mm; text-align:right;}
+small {color:#667988;}
+code, .inline {direction:ltr; unicode-bidi:embed; font-family:'DejaVu Sans Mono', monospace; font-size:8.5pt; background:#edf3f5; border-radius:3px; padding:0px 3px;}
+.kicker {font-family:'DejaVu Sans',sans-serif; direction:ltr; text-align:left; color:#358c81; font-weight:bold; font-size:9.5pt; letter-spacing:1.4px;}
+.hr {height:1px;background:#dbe6ea;margin:5mm 0;}
+.lead {font-size:11pt; color:#496374; line-height:1.95;}
+.ribbon {background:#eaf3f2;border-right:4px solid #258376; padding:2.5mm 3.5mm; color:#174f48; border-radius:4px; margin-bottom:4mm; font-size:10pt;}
+.tag {display:inline-block; background:#edf3f6; padding:1mm 2mm;border-radius:4px; font-family:'DejaVu Sans'; font-size:8pt;direction:ltr; color:#355a6a;}
+.diagram {border:1px solid #d1e1e4; border-radius:10px; background:#f8fbfc; padding:5mm; margin:4mm 0; }
+.diagram-title {font-family:'Noto Naskh Arabic';font-size:12pt; font-weight:600; color:#174456; margin-bottom:3mm}
+.columns {display:table; table-layout:fixed; width:100%;border-spacing:4mm 0; direction:ltr;}
+.col {display:table-cell;width:50%;vertical-align:top;direction:rtl;}
+.ns {border:2px solid #c0dce2; border-radius:9px; padding:3mm; min-height:65mm; background:#fff; }
+.ns.prod {border-color:#b8d8c5;}
+.nsname {direction:ltr; font-family:'DejaVu Sans';font-size:12pt; color:#125069;font-weight:bold; text-align:center; margin-bottom:1mm;}
+.ns-sub {text-align:center;font-size:8pt;color:#778d97;margin-bottom:3mm}
+.pod {border:1px solid #d9e3e9;background:#f0f6f8; border-radius:6px; padding:3mm; margin:3mm 0; text-align:center; line-height:1.4; }
+.pod.green {background:#eef8f2;border-color:#c8e5d3;}
+.pod-title {direction:ltr;font-family:'DejaVu Sans'; font-weight:bold;font-size:10pt; color:#1c4758}
+.pod-meta {direction:ltr; font-family:'DejaVu Sans';font-size:8pt;color:#647b86;margin-top:1.5mm}
+.flow {background:#e6f3f1; border-radius:5px; padding:3mm; text-align:center; margin-top:4mm; color:#205b53;}
+.flow strong {font-family:'DejaVu Sans';direction:ltr;}
+.legend {font-size:10pt;color:#607280; margin-top:3mm;}
+.outcome {display:table; width:100%; border-spacing:3mm 0; margin-top:5mm;direction:ltr}
+.outcard {display:table-cell;direction:rtl; width:33.33%; background:#f1f6f8;border-radius:7px; padding:3mm; vertical-align:top; font-size:9.1pt;}
+.outcard strong {display:block;color:#245468; margin-bottom:1mm;}
+.page-start{break-before:page;page-break-before:always;}
+.steps {counter-reset:steps;}
+.step {display:table;table-layout:fixed;width:100%;margin-bottom:5mm;break-inside:avoid;page-break-inside:avoid;}
+.step-no {display:table-cell;width:13mm;vertical-align:top;text-align:center;}
+.step-no .circle {display:inline-block;background:#184c61;color:white;border-radius:50%;font-family:'DejaVu Sans';height:9mm;width:9mm;line-height:9mm;text-align:center;font-size:10pt}
+.step-body{display:table-cell;vertical-align:top;padding-right:2mm;}
+.step-body p {font-size:10.6pt; margin:0;line-height:1.75}
+.check {background:#f1f6f8;border-right:3px solid #6c9ba9;padding:2.5mm 3mm; margin-top:1.5mm; font-size:9.5pt;color:#476674;}
+.file-label {font-family:'DejaVu Sans Mono';direction:ltr;font-size:9.5pt;color:#237768; margin-top:1mm;margin-bottom:2mm;}
+.code {direction:ltr; unicode-bidi:embed; text-align:left; font-family:'DejaVu Sans Mono',monospace; font-size:8.4pt; line-height:1.34; color:#213b50; background:#f3f6f8; border:1px solid #dce5eb; border-left:3px solid #358c81; border-radius:6px; padding:3.5mm; white-space:pre; margin:2mm 0 5mm; break-inside:avoid; page-break-inside:avoid;}
+.shelp {margin-bottom:3mm;}
+.shelp .code {font-size:8.6pt; margin-top:1mm; margin-bottom:1mm}
+.note {border:1px solid #d8e4e7;border-radius:5px;padding:3mm 3.5mm;background:#fbfcfd;font-size:9.5pt; margin:3mm 0;break-inside:avoid}
+.warn {border-right:4px solid #daae65;background:#fbf5e9;padding:3mm;border-radius:5px; font-size:10pt;}
+.checkrow {border-bottom:1px solid #e2eaed;padding:2mm 0;font-size:9.6pt;}
+.checkmark {display:inline-block;border:1.5px solid #97adb7;border-radius:3px;width:4mm;height:4mm;vertical-align:middle;margin-left:2mm}
+.right{text-align:right}
+ul {padding-right:5mm;margin-top:1mm;}
+li {margin-bottom:1.5mm}
+.section-kicker {direction:ltr;text-align:left;font-family:'DejaVu Sans';font-size:8.5pt;letter-spacing:1px; color:#7a909c;margin-bottom:4mm}
+.break {break-before:page;}
+
+/* Editorial Persian typography: readable book-style body + contemporary section headers */
+html, body { font-family: 'Noto Naskh Arabic', serif; font-size: 12.2pt; line-height:1.6; color:#223243; }
+h1,h2,h3 { font-family:'Noto Kufi Arabic',sans-serif; }
+h1 { font-size:22pt; line-height:1.65; margin-bottom:4mm; letter-spacing:-.15px; }
+h2 { font-size:15pt; line-height:1.6; margin-bottom:4mm; }
+h3 { font-size:10.6pt; line-height:1.65; }
+p { line-height:1.7; margin-bottom:3.5mm; }
+.lead {font-size:12.2pt; line-height:1.72;}
+.ribbon { font-size:11pt; line-height:1.6; padding:3.5mm 4mm; }
+.diagram { padding:5mm; margin:4.5mm 0; }
+.diagram-title {font-size:12pt;}
+.ns-sub {font-size:10.5pt;}
+.legend {font-size:10.8pt;line-height:1.6;}
+.outcard {font-size:10.1pt; line-height:1.6;}
+.step {margin-bottom:4.5mm;}
+.step-body p {font-size:11.3pt;line-height:1.6;}
+.check {font-size:10.9pt;line-height:1.5; padding:2.8mm 3mm;}
+.warn {font-size:10.5pt;line-height:1.6;}
+.code {font-size:8.5pt;line-height:1.35; padding:3.3mm; color:#1b3447;}
+.shelp .code {font-size:8.5pt;}
+.note {font-size:10.6pt;line-height:1.55;}
+.checkrow {font-size:11.1pt;line-height:1.55;}
+.file-label {font-size:9.4pt;}
+</style></head><body>
+<div class="kicker">KUBERNETES / HANDS-ON LAB 01</div>
+<h1>سناریوی عملی مدیریت پاد و فضای نام</h1>
+<p class="lead">دو محیط مستقل برای توسعه و عملیات بساز؛ دو وب‌سرور با نام یکسان اجرا کن و از یک پاد آزمایشی به هر دو متصل شو. در این پروژه فقط از منابع <bdi dir="ltr">Pod</bdi> و <bdi dir="ltr">Namespace</bdi> استفاده می‌شود.</p>
+<div class="ribbon">خروجی نهایی: دو صفحه وب متفاوت، یک کلاینت آزمایشی، مدیریت منابع، ارتباط مستقیم بین پادها و یک آزمون حذف و بازیابی.</div>
+<div class="diagram">
+<div class="diagram-title">نقشه معماری نهایی</div>
+<div class="columns">
+  <div class="col"><div class="ns"><div class="nsname">lab-prod</div><div class="ns-sub">محیط عملیاتی</div>
+    <div class="pod green"><div class="pod-title">Pod: web</div><div class="pod-meta">nginx:stable · TCP/80</div><div style="font-size:9.5pt;margin-top:2mm">صفحه: PRODUCTION ENVIRONMENT</div></div>
+    <div style="font-size:8pt;text-align:center;color:#77918a;margin-top:4mm">یک پاد وب‌سرور</div>
+  </div></div>
+  <div class="col"><div class="ns"><div class="nsname">lab-dev</div><div class="ns-sub">محیط توسعه</div>
+    <div class="pod"><div class="pod-title">Pod: web</div><div class="pod-meta">nginx:stable · TCP/80</div><div style="font-size:9.5pt;margin-top:2mm">صفحه: DEV ENVIRONMENT</div></div>
+    <div class="pod"><div class="pod-title">Pod: toolbox</div><div class="pod-meta">busybox:1.36</div><div style="font-size:9.5pt;margin-top:2mm">کلاینت تست شبکه</div></div>
+  </div></div>
+</div>
+<div class="flow"><div dir="ltr" style="text-align:center;line-height:1.7;font-family:'DejaVu Sans';font-size:9pt"><strong>toolbox</strong> → <strong>web (lab-dev)</strong> &nbsp; | &nbsp; <strong>toolbox</strong> → <strong>web (lab-prod)</strong></div><div style="font-size:8.5pt">درخواست HTTP مستقیماً از طریق آدرس IP پادهای وب‌سرور</div></div>
+<div class="legend">محدوده‌های نام‌گذاری جدا هستند؛ بنابراین داشتن دو پاد با نام <bdi dir="ltr">web</bdi> در دو Namespace مختلف مجاز است. این معماری از منبع Service استفاده نمی‌کند.</div>
+</div>
+<div class="outcome"><div class="outcard"><strong>۳ پاد</strong>دو پاد Nginx و یک پاد BusyBox</div><div class="outcard"><strong>۲ محیط</strong>فضای نام مستقل توسعه و عملیات</div><div class="outcard"><strong>۰ کنترلر</strong>بدون Deployment، Service یا StatefulSet</div></div>
+
+<section class="page-start"><div class="section-kicker">PART 01 / TASKS</div><h2>مراحل تمرین — بخش اول</h2><p>ابتدا تلاش کن همه مراحل را بدون دیدن پاسخ‌ها انجام بدهی. هدف، فهم رفتار خود پادها و فضای نام است؛ نه حفظ کردن YAML.</p>
+<div class="steps">
+<div class="step"><div class="step-no"><span class="circle">1</span></div><div class="step-body"><h3>بررسی سلامت کلاستر</h3><p>نودهای کلاستر را مشاهده کن. وضعیت، نام و IP آن‌ها را بررسی کن؛ همه نودهای موردنیاز باید آماده باشند.</p><div class="check">معیار قبولی: بتوانی Master و Workerها را شناسایی کنی.</div></div></div>
+<div class="step"><div class="step-no"><span class="circle">2</span></div><div class="step-body"><h3>ساخت دو Namespace</h3><p>دو فضای نام <bdi dir="ltr">lab-dev</bdi> و <bdi dir="ltr">lab-prod</bdi> بساز. وضعیت هر دو باید <bdi dir="ltr">Active</bdi> باشد.</p><div class="check">معیار قبولی: دو Namespace مستقل در فهرست وجود دارند.</div></div></div>
+<div class="step"><div class="step-no"><span class="circle">3</span></div><div class="step-body"><h3>پاد وب محیط توسعه</h3><p>در فضای توسعه، پاد <bdi dir="ltr">web</bdi> با یک کانتینر Nginx بساز؛ پورت ۸۰ و برچسب‌های <bdi dir="ltr">app=web</bdi> و <bdi dir="ltr">env=dev</bdi> داشته باشد.</p><div class="check">معیار قبولی: پاد اجرا می‌شود و یک کانتینر دارد.</div></div></div>
+<div class="step"><div class="step-no"><span class="circle">4</span></div><div class="step-body"><h3>پاد وب محیط عملیاتی</h3><p>در فضای عملیاتی نیز یک پاد با همان نام <bdi dir="ltr">web</bdi> و یک کانتینر Nginx بساز؛ برچسب <bdi dir="ltr">env=prod</bdi> داشته باشد.</p><div class="check">معیار قبولی: دو پاد همنام در دو Namespace متفاوت بدون تداخل وجود دارند.</div></div></div>
+<div class="step"><div class="step-no"><span class="circle">5</span></div><div class="step-body"><h3>درخواست و محدودیت منابع</h3><p>برای هر پاد وب: درخواست CPU برابر ۵۰ میلی‌کور، محدودیت CPU برابر ۲۵۰ میلی‌کور، درخواست حافظه ۶۴Mi و محدودیت حافظه ۱۲۸Mi قرار بده.</p><div class="check">معیار قبولی: با مشاهده جزئیات پاد، مقادیر Requests و Limits درست هستند.</div></div></div>
+</div></section>
+<section class="page-start"><div class="section-kicker">PART 01 / TASKS</div><h2>مراحل تمرین — بخش دوم</h2>
+<div class="steps">
+<div class="step"><div class="step-no"><span class="circle">6</span></div><div class="step-body"><h3>ساخت پاد ابزار آزمایش</h3><p>در <bdi dir="ltr">lab-dev</bdi> پاد <bdi dir="ltr">toolbox</bdi> با ایمیج BusyBox بساز؛ کانتینر باید برای ورود و آزمایش فعال بماند.</p><div class="check">معیار قبولی: وارد Shell کانتینر می‌شوی و پاد به‌صورت عادی Running است.</div></div></div>
+<div class="step"><div class="step-no"><span class="circle">7</span></div><div class="step-body"><h3>تغییر صفحه هر وب‌سرور</h3><p>با اجرای دستور داخل کانتینر، محتوای صفحه اصلی Nginx را تغییر بده: توسعه <bdi dir="ltr">DEV ENVIRONMENT</bdi> و عملیات <bdi dir="ltr">PRODUCTION ENVIRONMENT</bdi> را نشان دهد.</p><div class="check">معیار قبولی: دو پاد پاسخ‌های متفاوت دارند.</div></div></div>
+<div class="step"><div class="step-no"><span class="circle">8</span></div><div class="step-body"><h3>تست ارتباط بین Namespaceها</h3><p>IP هر پاد وب را پیدا کن. از داخل پاد <bdi dir="ltr">toolbox</bdi> ابتدا به وب‌سرور توسعه و سپس به وب‌سرور عملیاتی درخواست HTTP بفرست.</p><div class="check">معیار قبولی: بدون Kubernetes Service و فقط با Pod IP هر دو پاسخ را دریافت می‌کنی.</div></div></div>
+<div class="step"><div class="step-no"><span class="circle">9</span></div><div class="step-body"><h3>حذف و بازیابی دستی</h3><p>پاد وب توسعه را حذف کن. ببین آیا خودش برمی‌گردد. بعد همان پاد را دوباره از Manifest ایجاد کن و اتصال را آزمایش کن.</p><div class="check">معیار قبولی: توضیح بدهی چرا پاد معمولی برخلاف Deployment خودکار بازسازی نمی‌شود.</div></div></div>
+<div class="step"><div class="step-no"><span class="circle">10</span></div><div class="step-body"><h3>پاک‌سازی انتخابی محیط توسعه</h3><p>کل Namespace توسعه را حذف کن. بررسی کن پادهای آن حذف شده‌اند اما وب‌سرور محیط عملیاتی سالم مانده است.</p><div class="check">معیار قبولی: Namespace عملیاتی و پاد آن بدون تغییر باقی می‌مانند.</div></div></div>
+</div>
+<div class="warn"><strong>مرز سناریو:</strong> تنها منابع موردنیاز Namespace و Pod هستند. ابزارهای خط فرمان برای ورود به پاد، ویرایش فایل و آزمایش HTTP مجازند. هیچ Service، Deployment، Ingress یا ConfigMap نساز.</div>
+</section>
+<section class="page-start"><div class="section-kicker">PART 02 / ANSWER KEY</div><h2>پاسخ منیفست‌ها — بخش اول</h2><p>سه فایل زیر پاسخ کامل تعریف منابع هستند. فایل‌ها را به همان ترتیب اجرا کن. فایل اول دو Namespace و فایل دوم پاد وب توسعه را ایجاد می‌کند.</p>
+<div class="file-label">01-namespaces.yaml</div>
+<pre class="code">apiVersion: v1
+kind: Namespace
+metadata:
+  name: lab-dev
+  labels:
+    environment: development
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: lab-prod
+  labels:
+    environment: production</pre>
+<div class="file-label">02-dev-web.yaml</div>
+<pre class="code">apiVersion: v1
+kind: Pod
+metadata:
+  name: web
+  namespace: lab-dev
+  labels:
+    app: web
+    env: dev
+spec:
+  containers:
+    - name: nginx
+      image: nginx:stable
+      ports:
+        - containerPort: 80
+      resources:
+        requests:
+          cpu: &quot;50m&quot;
+          memory: &quot;64Mi&quot;
+        limits:
+          cpu: &quot;250m&quot;
+          memory: &quot;128Mi&quot;</pre>
+<div class="note">چرا هر دو پاد می‌توانند <bdi dir="ltr">web</bdi> نام داشته باشند؟ چون یکتایی نام Pod در محدوده همان Namespace سنجیده می‌شود، نه در کل کلاستر.</div>
+</section>
+<section class="page-start"><div class="section-kicker">PART 02 / ANSWER KEY</div><h2>پاسخ منیفست‌ها — بخش دوم</h2><p>فایل سوم پاد وب محیط عملیاتی و فایل چهارم پاد ابزار آزمایش را می‌سازد.</p>
+<div class="file-label">03-prod-web.yaml</div>
+<pre class="code">apiVersion: v1
+kind: Pod
+metadata:
+  name: web
+  namespace: lab-prod
+  labels:
+    app: web
+    env: prod
+spec:
+  containers:
+    - name: nginx
+      image: nginx:stable
+      ports:
+        - containerPort: 80
+      resources:
+        requests:
+          cpu: &quot;50m&quot;
+          memory: &quot;64Mi&quot;
+        limits:
+          cpu: &quot;250m&quot;
+          memory: &quot;128Mi&quot;</pre>
+<div class="file-label">04-dev-toolbox.yaml</div>
+<pre class="code">apiVersion: v1
+kind: Pod
+metadata:
+  name: toolbox
+  namespace: lab-dev
+  labels:
+    app: toolbox
+    env: dev
+spec:
+  containers:
+    - name: busybox
+      image: busybox:1.36
+      command:
+        - /bin/sh
+        - -c
+        - &quot;while true; do sleep 3600; done&quot;</pre>
+<div class="note">در BusyBox یک فرمان خواب تکرارشونده گذاشته‌ایم تا پردازش اصلی کانتینر فوراً تمام نشود و بتوانیم با <bdi dir="ltr">kubectl exec</bdi> وارد آن شویم.</div>
+</section>
+<section class="page-start"><div class="section-kicker">PART 03 / VERIFY & EXPLAIN</div><h2>پاسخ اجرایی — ساخت و بررسی</h2>
+<div class="shelp"><h3>۱. ایجاد منابع</h3><pre class="code">kubectl apply -f 01-namespaces.yaml
+kubectl apply -f 02-dev-web.yaml
+kubectl apply -f 03-prod-web.yaml
+kubectl apply -f 04-dev-toolbox.yaml</pre></div>
+<div class="shelp"><h3>۲. بررسی Namespaceها و پادها</h3><pre class="code">kubectl get namespaces
+kubectl get pods -n lab-dev -o wide
+kubectl get pods -n lab-prod -o wide
+kubectl describe pod web -n lab-dev</pre></div>
+<div class="shelp"><h3>۳. تغییر محتوای صفحه توسعه و عملیات</h3><pre class="code">kubectl exec -n lab-dev web -- sh -c \
+  &#x27;echo &quot;DEV ENVIRONMENT&quot; &gt; /usr/share/nginx/html/index.html&#x27;
+
+kubectl exec -n lab-prod web -- sh -c \
+  &#x27;echo &quot;PRODUCTION ENVIRONMENT&quot; &gt; /usr/share/nginx/html/index.html&#x27; </pre></div>
+<div class="shelp"><h3>۴. مشاهده آدرس‌های واقعی پادهای وب</h3><pre class="code">kubectl get pod web -n lab-dev -o wide
+kubectl get pod web -n lab-prod -o wide</pre></div>
+<div class="shelp"><h3>۵. ورود به پاد ابزار آزمایش</h3><pre class="code">kubectl exec -it -n lab-dev toolbox -- /bin/sh</pre></div>
+<p>آدرس‌های فرضی زیر را با IP واقعی هر پاد جایگزین کن. دو دستور را <b>داخل BusyBox</b> اجرا کن:</p>
+<pre class="code">wget -qO- http://&lt;DEV_POD_IP&gt;:80
+wget -qO- http://&lt;PROD_POD_IP&gt;:80</pre>
+<div class="note">پاسخ موفق ارتباط میان Namespaceها را نشان می‌دهد؛ خود Namespace به‌تنهایی جداسازی شبکه یا محدودیت دسترسی ایجاد نمی‌کند.</div>
+</section>
+<section class="page-start"><div class="section-kicker">PART 03 / VERIFY & EXPLAIN</div><h2>پاسخ اجرایی — خرابی، بازیابی و نتیجه</h2>
+<div class="shelp"><h3>۶. حذف عمدی پاد وب توسعه</h3><pre class="code">kubectl delete pod web -n lab-dev
+kubectl get pods -n lab-dev</pre><p>انتظار: پاد <bdi dir="ltr">web</bdi> از فهرست حذف می‌شود و به‌صورت خودکار برنمی‌گردد؛ چون هیچ کنترلری برای بازسازی آن تعریف نکرده‌ایم.</p></div>
+<div class="shelp"><h3>۷. بازیابی پاد از فایل Manifest</h3><pre class="code">kubectl apply -f 02-dev-web.yaml
+kubectl get pod web -n lab-dev -o wide</pre><p>با ایجاد مجدد پاد، احتمالاً آدرس IP تغییر می‌کند. همچنین تغییر دستی صفحه HTML از بین رفته است، چون در فایل‌سیستم گذرای کانتینر انجام شده بود. برای تکرار آزمایش باید دوباره صفحه را تغییر بدهی.</p></div>
+<div class="shelp"><h3>۸. پاک‌سازی فقط محیط توسعه</h3><pre class="code">kubectl delete namespace lab-dev
+kubectl get namespaces
+kubectl get pods -n lab-prod</pre><p>انتظار: منابع داخل Namespace توسعه حذف شوند و پاد وب محیط عملیاتی باقی بماند.</p></div>
+<div class="hr"></div>
+<h2>چک‌لیست پایان سناریو</h2>
+<div class="checkrow"><span class="checkmark"></span> دو Namespace مستقل ایجاد شدند.</div>
+<div class="checkrow"><span class="checkmark"></span> دو پاد با نام یکسان، ولی در Namespaceهای متفاوت اجرا شدند.</div>
+<div class="checkrow"><span class="checkmark"></span> مقدار CPU و حافظه برای دو پاد وب تعریف شد.</div>
+<div class="checkrow"><span class="checkmark"></span> از داخل BusyBox به هر دو Nginx با IP مستقیم متصل شدیم.</div>
+<div class="checkrow"><span class="checkmark"></span> حذف پاد معمولی و بازیابی دستی آن آزمایش شد.</div>
+<div class="checkrow"><span class="checkmark"></span> حذف Namespace توسعه روی Namespace عملیاتی اثر نداشت.</div>
+<div class="note"><strong>یادگیری کلیدی:</strong> Namespace محدوده نام‌گذاری و سازمان‌دهی منابع است؛ Pod واحد اجرای کانتینر است. بدون کنترلر، Pod حذف‌شده خودکار جایگزین نمی‌شود. بدون Service نیز می‌توان با IP پاد ارتباط گرفت، ولی آن IP پایدار نیست.</div>
+</section>
+</body></html>
