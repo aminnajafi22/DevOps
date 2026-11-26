@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: retail-dev
+  labels:
+    team: platform
+    environment: dev
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: retail-prod
+  labels:
+    team: platform
+    environment: prod
