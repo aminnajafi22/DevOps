@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: store-web
+  namespace: deploy-lab
+  labels:
+    app: store-web
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: store-web
+  minReadySeconds: 5
+  progressDeadlineSeconds: 120
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: store-web
+    spec:
+      containers:
+      - name: web
+        image: nginx:1.27.5-alpine
+        ports:
+        - name: http
+          containerPort: 80
+        resources:
+          requests:
+            cpu: 50m
+            memory: 32Mi
+          limits:
+            cpu: 250m
+            memory: 128Mi
+        command:
+        - /bin/sh
+        - -c
+        args:
+        - sleep 25; echo ready > /usr/share/nginx/html/ready; echo live > /usr/share/nginx/html/live;
+          exec nginx -g "daemon off;"
+        startupProbe:
+          httpGet:
+            path: /live
+            port: http
+          periodSeconds: 5
+          timeoutSeconds: 2
+          failureThreshold: 12
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          periodSeconds: 3
+          timeoutSeconds: 2
+          failureThreshold: 2
+          successThreshold: 1
+        livenessProbe:
+          httpGet:
+            path: /live
+            port: http
+          periodSeconds: 5
+          timeoutSeconds: 2
+          failureThreshold: 3
+      terminationGracePeriodSeconds: 30
