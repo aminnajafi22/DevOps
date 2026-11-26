@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: catalog-lab
+  namespace: retail-dev
+spec:
+  volumes:
+    - name: content
+      emptyDir: {}
+  initContainers:
+    - name: prepare
+      image: busybox:1.36.1
+      command: ["sh", "-c", "echo catalog-ready > /data/index.html"]
+      volumeMounts:
+        - name: content
+          mountPath: /data
+  containers:
+    - name: web
+      image: nginx:1.27.5-alpine
+      ports:
+        - containerPort: 80
+      volumeMounts:
+        - name: content
+          mountPath: /usr/share/nginx/html
+    - name: observer
+      image: busybox:1.36.1
+      command: ["sh", "-c", "while true; do cat /data/index.html; sleep 10; done"]
+      volumeMounts:
+        - name: content
+          mountPath: /data
+          readOnly: true
