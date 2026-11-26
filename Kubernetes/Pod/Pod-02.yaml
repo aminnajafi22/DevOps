@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web-check
+  namespace: retail-dev
+  labels:
+    app: web-check
+spec:
+  containers:
+    - name: nginx
+      image: nginx:1.27.5-alpine
+      ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web-check
+  namespace: retail-prod
+  labels:
+    app: web-check
+spec:
+  containers:
+    - name: nginx
+      image: nginx:1.27.5-alpine
+      ports:
+        - containerPort: 80
