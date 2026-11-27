@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: parallel-peer
+  namespace: sts-lab
+spec:
+  clusterIP: None
+  selector:
+    app: parallel-demo
+  ports:
+    - port: 80
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: parallel-demo
+  namespace: sts-lab
+spec:
+  serviceName: parallel-peer
+  replicas: 3
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app: parallel-demo
+  template:
+    metadata:
+      labels:
+        app: parallel-demo
+    spec:
+      containers:
+        - name: web
+          image: nginx:1.27.5-alpine
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 3
