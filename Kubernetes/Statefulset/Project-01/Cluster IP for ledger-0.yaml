@@ -12,3 +12,9 @@ spec:
 # baraye in yek pod az statefulset miad ye service ekhtesasi minevise ke traffic biad ru in Cluster IP Service biad ru in Pod
 # kubectl -n sts-lab exec dns-client -- wget -qO- http://ledger-zero 
 # in traffic ke mirese be in service pas mide be ledger-0
+dns ham be in soorate ke dastoore ziro bzan 
+nslookup ServiceName.NameSpace.svc.cluster.local
+harchi IP dade be po ha ba esm miad hala khode pod ro mituni nslookup koni
+nslookup pod-0.ServiceName.NameSpace.svc.cluster.local
+nslookup pod-1.ServiceName.NameSpace.svc.cluster.local
+nslookup pod-2.ServiceName.NameSpace.svc.cluster.local
