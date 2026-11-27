@@ -1,0 +1,47 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: checkout-api
+  namespace: deploy-lab
+# creating HPA with checkout-api name and deploy-lab namespace 
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: checkout-api
+# defining that which deployment must be controlled that in this case checkout-api deployment selected in order to controlled by HPA
+  minReplicas: 2
+  maxReplicas: 6
+# defining min replicas and max replicas
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
+# with metric we define metirc for scaling 
+# resource type defined that decision making should be based on resource consumption
+# target type defines decision making for scaling should be based on cpu parameter
+# target --> type --> utilization is cpu utilization based on percentage based on cpu requests not cpu limits
+# average utilization : 50 yani say kon cpu usage pod ha ro 50% e cpu request ke set kardim negah dari hala shayad niaz bashe baraye in koli pod biari bala
+
+# meaning that deployment ask HPA that keep container cpu usage at 50% of cpu request 
+
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 30
+# value 2 yani hadeaxar 2 pod teye baze zaminaie periodseconds yani 30 sanie ezafe shavad 
+# stabilizationWindowSeconds in parameter kari ke mikone az navasanat e ijad ya hazfe pod jologiri mikone yani mige dar modar zaman periodsecond 
+# ke hpa miad check mikone meghdare pod cpu ro ke har 30 sanie has farz kon stabilizationWindowSeconds hast 60 sanie yanie tu 2 meghdare akhar bishtarin
+# ro dar nazar migire
+    scaleDown:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 30
