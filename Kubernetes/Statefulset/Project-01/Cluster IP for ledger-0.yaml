@@ -9,3 +9,6 @@ spec:
   ports:
     - port: 80
       targetPort: http
+# baraye in yek pod az statefulset miad ye service ekhtesasi minevise ke traffic biad ru in Cluster IP Service biad ru in Pod
+# kubectl -n sts-lab exec dns-client -- wget -qO- http://ledger-zero 
+# in traffic ke mirese be in service pas mide be ledger-0
