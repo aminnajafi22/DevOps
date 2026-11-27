@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ledger-peer
+  namespace: sts-lab
+spec:
+  clusterIP: None
+  selector:
+    app: ledger
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ledger
+  namespace: sts-lab
+spec:
+  serviceName: ledger-peer
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ledger
+  podManagementPolicy: OrderedReady
+  minReadySeconds: 5
+  revisionHistoryLimit: 10
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 0
+  template:
+    metadata:
+      labels:
+        app: ledger
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: web
+          image: nginx:1.27.5-alpine
+          ports:
+            - name: http
+              containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 3
